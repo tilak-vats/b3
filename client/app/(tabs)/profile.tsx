@@ -13,7 +13,8 @@ const profile = () => {
         signOut();
         return <Redirect href={'/(auth)'} />
       }}>
-        <Text>Logout <Feather name='log-out' color='red' /></Text>
+
+        <Text>Logout to accound <Feather name='log-out' color='red' /></Text>
       </TouchableOpacity>
     </View>
   )
