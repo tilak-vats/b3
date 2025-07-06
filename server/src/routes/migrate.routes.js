@@ -1,5 +1,5 @@
 import express from 'express';
-import { runProductMigration } from '../controllers/migrationController.js';
+import { runProductMigration } from '../controllers/migration.controller.js';
 
 const router = express.Router();
 
