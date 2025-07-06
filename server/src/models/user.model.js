@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
             type:String,
             default:"",
         },
-        cartItem:[cartItem,{default:[]}]
+        cartItem:[cartItem]
     },
     {timestamps:true}
 )
