@@ -117,7 +117,6 @@ const Home = () => {
         selectedCategory={selectedCategory}
         onCategorySelect={setSelectedCategory}
       />
-
       <View className="flex-row items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
         <TouchableOpacity
           onPress={handleCategorizeProducts}
@@ -149,7 +148,7 @@ const Home = () => {
         numColumns={2}
         contentContainerStyle={{ 
           paddingHorizontal: 8,
-          paddingVertical: 8,
+          paddingVertical: 12,
           paddingBottom: 100 
         }}
         columnWrapperStyle={{ justifyContent: 'space-around' }}

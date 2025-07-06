@@ -20,7 +20,8 @@ export default function RootLayout() {
           headerShown: false
         }} name="(auth)" />
         <Stack.Screen name="(tabs)" options={{
-          headerTitle:'B3'
+          // headerTitle:'B3',
+          headerShown:false
         }} />
       </Stack>
     </ClerkProvider>
