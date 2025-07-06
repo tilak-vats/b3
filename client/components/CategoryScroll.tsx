@@ -23,11 +23,17 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({
         <TouchableOpacity
           key={category}
           onPress={() => onCategorySelect(category)}
-          className={`px-4 py-2 mr-3 rounded-full ${
+          activeOpacity={0.7}
+          className={`px-4 py-2 mr-3 rounded-full border ${
             selectedCategory === category
-              ? 'bg-purple-500'
-              : 'bg-gray-100'
+              ? 'bg-purple-500 border-purple-500'
+              : 'bg-white border-gray-300'
           }`}
+          style={{
+            minWidth: 80,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <Text
             className={`font-medium text-sm ${
@@ -35,6 +41,7 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({
                 ? 'text-white'
                 : 'text-gray-700'
             }`}
+            numberOfLines={1}
           >
             {category}
           </Text>
