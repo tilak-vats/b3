@@ -3,24 +3,37 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import userRoutes from "./routes/user.routes.js";
 import productRoutes from "./routes/products.route.js";
+import migrationRoutes from "./routes/migrate.routes.js";
 import {clerkMiddleware} from '@clerk/express';
+import connectDb from './utils/connectDb.js';
 
 const app = express();
-dotenv.config()
+dotenv.config();
 
-app.use(cors());
-app.use(express.json());
-app.use(clerkMiddleware());
+(async () => {
+    try {
+        await connectDb(); 
+        console.log('Database connected successfully.');
 
-//Routes
-app.use('/api/users',userRoutes);
-app.use('/api/products',productRoutes);
+        app.use(cors());
+        app.use(express.json());
+        app.use(clerkMiddleware());
 
+        // Routes
+        app.use('/api/users', userRoutes);
+        app.use('/api/products', productRoutes);
+        app.use('/api/migrate-products', migrationRoutes);
 
-app.get('/',(req,res)=>{
-    res.send('Hello from Server !! 🎉')
-})
+        app.get('/', (req, res) => {
+            res.send('Hello from Server !! 🎉');
+        });
 
-app.listen(process.env.PORT,()=>{
-    console.log(`Server is starting on port ${process.env.PORT} ✅`)
-})
+        app.listen(process.env.PORT, () => {
+            console.log(`Server is starting on port ${process.env.PORT} ✅`);
+        });
+
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1); 
+    }
+})();
