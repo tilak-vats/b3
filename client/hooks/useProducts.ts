@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-expo';
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://b3-iota.vercel.app';
 
 export interface Product {
   _id: string;
