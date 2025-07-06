@@ -2,16 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useCart } from '@/hooks/useCart';
-
-interface Product {
-  _id: string;
-  name: string;
-  category: string;
-  price: number;
-  image?: string;
-  barcode: string;
-  quantity: number;
-}
+import { Product } from '@/hooks/useProducts';
 
 interface ProductCardProps {
   product: Product;
