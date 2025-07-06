@@ -117,8 +117,7 @@ const Home = () => {
         selectedCategory={selectedCategory}
         onCategorySelect={setSelectedCategory}
       />
-
-      <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+      <View className="flex-row items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
         <TouchableOpacity
           onPress={handleCategorizeProducts}
           disabled={isLoading}
