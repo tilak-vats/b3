@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useCart } from '@/hooks/useCart';
 
@@ -15,10 +15,14 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  isAdmin?: boolean;
+  onEdit?: (product: Product) => void;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, isAdmin = false, onEdit }) => {
   const { addToCart, isLoading } = useCart();
+  const screenWidth = Dimensions.get('window').width;
+  const cardWidth = (screenWidth - 32) / 2 - 8; // Account for padding and margins
 
   const handleAddToCart = async () => {
     try {
@@ -29,10 +33,19 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(product);
+    }
+  };
+
   return (
-    <View className="bg-white rounded-xl shadow-sm border border-gray-100 m-2 overflow-hidden" style={{ width: 180, height: 280 }}>
+    <View 
+      className="bg-white rounded-xl shadow-sm border border-gray-100 m-1 overflow-hidden" 
+      style={{ width: cardWidth, height: 280 }}
+    >
       {/* Product Image */}
-      <View className="h-32 bg-gray-50">
+      <View className="h-32 bg-gray-50 relative">
         {product.image ? (
           <Image
             source={{ uri: product.image }}
@@ -44,16 +57,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <Feather name="image" size={24} color="#9CA3AF" />
           </View>
         )}
+        
+        {/* Admin Edit Button */}
+        {isAdmin && (
+          <TouchableOpacity
+            onPress={handleEdit}
+            className="absolute top-2 right-2 bg-blue-500 rounded-full p-2"
+          >
+            <Feather name="edit-2" size={14} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Product Info */}
       <View className="p-3 flex-1">
         {/* Product Name - Fixed height with ellipsis */}
         <Text 
-          className="text-base font-semibold text-gray-800 mb-1"
+          className="text-sm font-semibold text-gray-800 mb-1"
           numberOfLines={2}
           ellipsizeMode="tail"
-          style={{ height: 40 }}
+          style={{ height: 36 }}
         >
           {product.name}
         </Text>
@@ -78,29 +101,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             Stock: {product.quantity}
           </Text>
           
-          <TouchableOpacity
-            onPress={handleAddToCart}
-            disabled={isLoading || product.quantity === 0}
-            className={`flex-row items-center justify-center px-3 py-2 rounded-lg ${
-              product.quantity === 0
-                ? 'bg-gray-200'
-                : 'bg-purple-500'
-            }`}
-          >
-            <Feather
-              name="shopping-cart"
-              size={14}
-              color={product.quantity === 0 ? '#9CA3AF' : 'white'}
-            />
-            <Text
-              className={`ml-2 text-xs font-medium ${
-                product.quantity === 0 ? 'text-gray-500' : 'text-white'
+          {!isAdmin && (
+            <TouchableOpacity
+              onPress={handleAddToCart}
+              disabled={isLoading || product.quantity === 0}
+              className={`flex-row items-center justify-center px-3 py-2 rounded-lg ${
+                product.quantity === 0
+                  ? 'bg-gray-200'
+                  : 'bg-purple-500'
               }`}
-              numberOfLines={1}
             >
-              {product.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
-            </Text>
-          </TouchableOpacity>
+              <Feather
+                name="shopping-cart"
+                size={12}
+                color={product.quantity === 0 ? '#9CA3AF' : 'white'}
+              />
+              <Text
+                className={`ml-2 text-xs font-medium ${
+                  product.quantity === 0 ? 'text-gray-500' : 'text-white'
+                }`}
+                numberOfLines={1}
+              >
+                {product.quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>

@@ -3,11 +3,15 @@ import { Redirect, Tabs } from 'expo-router'
 import { View, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {Feather} from '@expo/vector-icons';
+import { useAuthRole } from '@/hooks/useAuth';
 
 const _layout = () => {
     const insets = useSafeAreaInsets()
     const { isSignedIn } = useAuth();
+    const { isAdmin } = useAuthRole();
+    
     if (!isSignedIn) return <Redirect href='/(auth)' />
+    
     return (
         <Tabs
         screenOptions={{
@@ -18,7 +22,6 @@ const _layout = () => {
               borderTopWidth:1,
               borderTopColor:"#E1E8ED",
               height:50 + insets.bottom,
-            //   paddingTop:8,
             },
             tabBarIconStyle:{
                 fontSize:16,
@@ -40,6 +43,15 @@ const _layout = () => {
                     tabBarIcon:({color,size})=> <Feather size={size} color={color} name='shopping-cart' />
                 }}
             />
+            {isAdmin && (
+                <Tabs.Screen
+                    name='admin'
+                    options={{
+                        title:'Admin',
+                        tabBarIcon:({color,size})=> <Feather size={size} color={color} name='settings' />
+                    }}
+                />
+            )}
             <Tabs.Screen
                 name='profile'
                 options={{

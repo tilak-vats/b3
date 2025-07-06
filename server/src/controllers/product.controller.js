@@ -16,6 +16,35 @@ export const getAllProducts = asyncHandler(async (req, res) => {
     }
 });
 
+export const updateProduct = asyncHandler(async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, category, price, quantity, image } = req.body;
+
+        const updatedProduct = await Product.findByIdAndUpdate(
+            id,
+            {
+                name,
+                category,
+                price,
+                quantity,
+                image,
+                updatedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!updatedProduct) {
+            return res.status(404).json({ message: "Product not found." });
+        }
+
+        res.status(200).json(updatedProduct);
+    } catch (error) {
+        console.error("Error updating product:", error);
+        res.status(500).json({ error: "Server error while updating product." });
+    }
+});
+
 export const categorizeProducts = asyncHandler(async (req, res) => {
     try {
         const products = await Product.find({});
