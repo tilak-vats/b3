@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { use } from 'react'
+import React, { use, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-expo'
 import { Feather } from '@expo/vector-icons'
 import { Redirect } from 'expo-router'
@@ -20,5 +20,3 @@ const profile = () => {
 }
 
 export default profile
-
-const styles = StyleSheet.create({})
