@@ -9,7 +9,7 @@ import { useUser } from '@/hooks/useUser';
 import Header from '@/components/Header';
 import initiateUpiPayment from "../../utils/upiPayment.js"; // Ensure this utility is robust
 import SuccessModal from '@/components/SuccessModal';
-import { smsTemplates } from '@/utils/sms.js';
+import { smsTemplates } from '../../utils/sms.js';
 
 const Cart = () => {
   const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart } = useCart();
