@@ -12,10 +12,19 @@ const ADMIN_TABS = ['Products', 'Orders', 'Analytics'];
 
 const AdminPanel = () => {
   const { products, isLoading: productsLoading, fetchProducts } = useProducts();
-  const { orders, isLoading: ordersLoading, fetchOrders, updateOrderStatus } = useOrders();
+  const { orders, isLoading: ordersLoading, fetchAllOrders, updateOrderStatus } = useOrders();
   const [activeTab, setActiveTab] = useState('Orders');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Fetch appropriate data based on active tab
+  React.useEffect(() => {
+    if (activeTab === 'Orders') {
+      fetchAllOrders();
+    } else if (activeTab === 'Products') {
+      fetchProducts();
+    }
+  }, [activeTab]);
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
