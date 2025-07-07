@@ -39,13 +39,24 @@ export const createOrder = asyncHandler(async (req, res) => {
 
     const savedOrder = await order.save();
 
-    // Clear user's cart after successful order
+    // Calculate coins earned (1 coin per 100 rupees)
+    const coinsEarned = Math.floor(total / 100);
+    
+    // Update user's coins and clear cart
     await User.findOneAndUpdate(
       { clerkId: userId },
-      { $set: { cartItem: [] } }
+      { 
+        $set: { cartItem: [] },
+        $inc: { coins: coinsEarned }
+      }
     );
 
-    res.status(201).json(savedOrder);
+    console.log(`User ${user.email} earned ${coinsEarned} coins for order ${savedOrder._id}`);
+
+    res.status(201).json({
+      ...savedOrder.toObject(),
+      coinsEarned
+    });
   } catch (error) {
     console.error("Error creating order:", error);
     res.status(500).json({ error: "Server error while creating order." });
