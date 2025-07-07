@@ -67,10 +67,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({ visible, product, o
         type: 'image/jpeg',
         name: 'product-image.jpg',
       } as any);
-      formData.append('upload_preset', 'your_upload_preset'); // Replace with your Cloudinary upload preset
+      formData.append('upload_preset', 'my_preset'); // Replace with your Cloudinary upload preset
       
       const response = await fetch(
-        'https://api.cloudinary.com/v1_1/your_cloud_name/image/upload', // Replace with your Cloudinary cloud name
+        'https://api.cloudinary.com/v1_1/dzjlp82fv/image/upload', // Replace with your Cloudinary cloud name
         {
           method: 'POST',
           body: formData,

@@ -6,9 +6,15 @@ interface SuccessModalProps {
   visible: boolean;
   onClose: () => void;
   orderNumber: string;
+  coinsEarned?: number;
 }
 
-const SuccessModal: React.FC<SuccessModalProps> = ({ visible, onClose, orderNumber }) => {
+const SuccessModal: React.FC<SuccessModalProps> = ({ 
+  visible, 
+  onClose, 
+  orderNumber, 
+  coinsEarned = 0 
+}) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
   const confettiAnim = useRef(new Animated.Value(0)).current;
@@ -51,10 +57,10 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ visible, onClose, orderNumb
         }),
       ]).start();
 
-      // Auto close after 3 seconds
+      // Auto close after 4 seconds
       const timer = setTimeout(() => {
         onClose();
-      }, 3000);
+      }, 4000);
 
       return () => clearTimeout(timer);
     }
@@ -145,6 +151,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ visible, onClose, orderNumb
             shadowOpacity: 0.25,
             shadowRadius: 20,
             elevation: 10,
+            maxWidth: '90%',
           }}
         >
           {/* Success Circle with Check */}
@@ -184,6 +191,21 @@ const SuccessModal: React.FC<SuccessModalProps> = ({ visible, onClose, orderNumb
               #{orderNumber}
             </Text>
           </View>
+          
+          {/* Coins Earned */}
+          {coinsEarned > 0 && (
+            <View className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4">
+              <View className="flex-row items-center justify-center">
+                <Feather name="star" size={20} color="#F59E0B" />
+                <Text className="ml-2 text-yellow-700 font-semibold">
+                  You earned {coinsEarned} coin{coinsEarned !== 1 ? 's' : ''}!
+                </Text>
+              </View>
+              <Text className="text-xs text-yellow-600 text-center mt-1">
+                Keep shopping to earn more rewards
+              </Text>
+            </View>
+          )}
           
           <Text className="text-sm text-gray-500 text-center">
             You will receive a confirmation shortly

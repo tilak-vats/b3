@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -8,14 +8,32 @@ import ProductCard from '@/components/ProductCard';
 import OrderCard from '@/components/OrderCard';
 import EditProductModal from '@/components/EditProductModal';
 
-const ADMIN_TABS = ['Products', 'Orders', 'Analytics'];
+const ADMIN_TABS = ['Active Orders', 'Past Orders', 'Products', 'Analytics'];
 
 const AdminPanel = () => {
   const { products, isLoading: productsLoading, fetchProducts } = useProducts();
-  const { orders, isLoading: ordersLoading, fetchOrders, updateOrderStatus } = useOrders();
-  const [activeTab, setActiveTab] = useState('Orders');
+  const { orders, isLoading: ordersLoading, fetchAllOrders, updateOrderStatus } = useOrders();
+  const [activeTab, setActiveTab] = useState('Active Orders');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Filter orders based on status
+  const activeOrders = orders.filter(order => 
+    ['pending', 'confirmed', 'preparing', 'ready'].includes(order.status)
+  );
+  
+  const pastOrders = orders.filter(order => 
+    ['delivered', 'cancelled'].includes(order.status)
+  );
+
+  // Fetch appropriate data based on active tab
+  useEffect(() => {
+    if (activeTab === 'Active Orders' || activeTab === 'Past Orders') {
+      fetchAllOrders();
+    } else if (activeTab === 'Products') {
+      fetchProducts();
+    }
+  }, [activeTab]);
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
@@ -53,11 +71,21 @@ const AdminPanel = () => {
     />
   );
 
+  const getTabCount = (tab: string) => {
+    switch (tab) {
+      case 'Active Orders': return activeOrders.length;
+      case 'Past Orders': return pastOrders.length;
+      case 'Products': return products.length;
+      default: return 0;
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Products':
         return (
           <FlatList
+            key="products-grid"
             data={products}
             renderItem={renderProduct}
             keyExtractor={(item) => item._id}
@@ -78,21 +106,51 @@ const AdminPanel = () => {
             }
           />
         );
-      case 'Orders':
+      case 'Active Orders':
         return (
           <FlatList
-            data={orders}
+            key="active-orders-list"
+            data={activeOrders}
             renderItem={renderOrder}
             keyExtractor={(item) => item._id}
+            numColumns={1}
             contentContainerStyle={{ 
               paddingVertical: 12,
               paddingBottom: 100 
             }}
             ListEmptyComponent={
               <View className="flex-1 items-center justify-center py-20">
-                <Feather name="shopping-bag" size={48} color="#9CA3AF" />
+                <Feather name="clock" size={48} color="#9CA3AF" />
                 <Text className="text-lg font-semibold text-gray-500 mt-4">
-                  {ordersLoading ? 'Loading orders...' : 'No orders found'}
+                  {ordersLoading ? 'Loading orders...' : 'No active orders'}
+                </Text>
+                <Text className="text-gray-400 mt-2 text-center">
+                  Active orders will appear here when customers place orders
+                </Text>
+              </View>
+            }
+          />
+        );
+      case 'Past Orders':
+        return (
+          <FlatList
+            key="past-orders-list"
+            data={pastOrders}
+            renderItem={renderOrder}
+            keyExtractor={(item) => item._id}
+            numColumns={1}
+            contentContainerStyle={{ 
+              paddingVertical: 12,
+              paddingBottom: 100 
+            }}
+            ListEmptyComponent={
+              <View className="flex-1 items-center justify-center py-20">
+                <Feather name="archive" size={48} color="#9CA3AF" />
+                <Text className="text-lg font-semibold text-gray-500 mt-4">
+                  {ordersLoading ? 'Loading past orders...' : 'No past orders'}
+                </Text>
+                <Text className="text-gray-400 mt-2 text-center">
+                  Completed and cancelled orders will appear here
                 </Text>
               </View>
             }
@@ -124,16 +182,9 @@ const AdminPanel = () => {
           <Text className="text-xl font-bold text-gray-800 ml-2">Admin Panel</Text>
         </View>
         <View className="flex-row items-center">
-          {activeTab === 'Orders' && (
-            <Text className="text-sm text-gray-600 mr-2">
-              {orders.length} orders
-            </Text>
-          )}
-          {activeTab === 'Products' && (
-            <Text className="text-sm text-gray-600 mr-2">
-              {products.length} products
-            </Text>
-          )}
+          <Text className="text-sm text-gray-600 mr-2">
+            {getTabCount(activeTab)} {activeTab.toLowerCase()}
+          </Text>
         </View>
       </View>
 
@@ -144,14 +195,14 @@ const AdminPanel = () => {
             <TouchableOpacity
               key={tab}
               onPress={() => setActiveTab(tab)}
-              className={`px-4 py-2 mr-3 rounded-full ${
+              className={`px-3 py-2 mr-2 rounded-full ${
                 activeTab === tab
                   ? 'bg-blue-500'
                   : 'bg-gray-100'
               }`}
             >
               <Text
-                className={`font-medium text-sm ${
+                className={`font-medium text-xs ${
                   activeTab === tab
                     ? 'text-white'
                     : 'text-gray-700'

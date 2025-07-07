@@ -38,7 +38,7 @@ export const useOrders = () => {
     setError(null);
     try {
       const token = await getToken();
-      const response = await fetch(`${API_BASE_URL}/api/orders`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/user`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -53,6 +53,32 @@ export const useOrders = () => {
       setOrders(data);
     } catch (err) {
       console.error('Fetch orders error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchAllOrders = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch orders');
+      }
+
+      const data = await response.json();
+      setOrders(data);
+    } catch (err) {
+      console.error('Fetch all orders error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
@@ -128,7 +154,7 @@ export const useOrders = () => {
       }
 
       const data = await response.json();
-      await fetchOrders(); // Refresh orders
+      await fetchAllOrders(); // Refresh all orders for admin
       return data;
     } catch (err) {
       console.error('Update order status error:', err);
@@ -139,15 +165,17 @@ export const useOrders = () => {
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  // Don't auto-fetch orders on mount since we want to control when to fetch
+  // useEffect(() => {
+  //   fetchOrders();
+  // }, []);
 
   return {
     orders,
     isLoading,
     error,
     fetchOrders,
+    fetchAllOrders,
     createOrder,
     updateOrderStatus,
   };
