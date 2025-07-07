@@ -84,14 +84,40 @@ export const getAllOrders = asyncHandler(async (req, res) => {
 export const createOrder = asyncHandler(async (req, res) => {
   try {
     const { userId } = getAuth(req);
+    
+    console.log('Creating order for user:', userId);
+    console.log('Request body:', req.body);
+    
     const { items, total, deliveryOption, paymentOption, address, phoneNumber } = req.body;
 
+    // Validate required fields
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "Items are required and must be a non-empty array" });
+    }
+    
+    if (!total || typeof total !== 'number') {
+      return res.status(400).json({ error: "Total is required and must be a number" });
+    }
+    
+    if (!deliveryOption || !['delivery', 'takeaway'].includes(deliveryOption)) {
+      return res.status(400).json({ error: "Valid delivery option is required" });
+    }
+    
+    if (!paymentOption || !['online', 'cod'].includes(paymentOption)) {
+      return res.status(400).json({ error: "Valid payment option is required" });
+    }
+    
+    if (!phoneNumber || typeof phoneNumber !== 'string') {
+      return res.status(400).json({ error: "Phone number is required" });
+    }
     // Get user details
     const user = await User.findOne({ clerkId: userId });
     if (!user) {
+      console.error('User not found for clerkId:', userId);
       return res.status(404).json({ error: "User not found" });
     }
 
+    console.log('Found user:', user.email);
     // Create new order
     const order = new Order({
       userId: userId,
@@ -105,32 +131,51 @@ export const createOrder = asyncHandler(async (req, res) => {
       status: 'pending'
     });
 
+    console.log('Creating order with data:', order);
+    
     const savedOrder = await order.save();
+    console.log('Order saved successfully:', savedOrder._id);
 
     // Calculate coins earned (1 coin per 100 rupees)
     const coinsEarned = Math.floor(total / 100);
     
     // Update user's coins and clear cart
-    await User.findOneAndUpdate(
+    const updatedUser = await User.findOneAndUpdate(
       { clerkId: userId },
       { 
         $set: { cartItem: [] },
         $inc: { coins: coinsEarned }
-      }
+      },
+      { new: true }
     );
 
+    console.log('User updated, new coin balance:', updatedUser.coins);
     const orderNumber = savedOrder._id.slice(-6).toUpperCase();
     
     // Send SMS notification
-    const smsMessage = smsTemplates.orderPlaced(orderNumber, total);
-    await sendSMSNotification(phoneNumber, smsMessage);
+    try {
+      const smsMessage = smsTemplates.orderPlaced(orderNumber, total);
+      await sendSMSNotification(phoneNumber, smsMessage);
+      console.log('SMS sent successfully');
+    } catch (smsError) {
+      console.error('SMS sending failed:', smsError);
+      // Don't fail the order if SMS fails
+    }
 
     // Emit socket event to admin
-    const io = req.app.get('io');
-    io.to('admin').emit('new-order', {
-      order: savedOrder,
-      message: `New order #${orderNumber} received!`
-    });
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admin').emit('new-order', {
+          order: savedOrder,
+          message: `New order #${orderNumber} received!`
+        });
+        console.log('Socket event emitted to admin');
+      }
+    } catch (socketError) {
+      console.error('Socket emission failed:', socketError);
+      // Don't fail the order if socket fails
+    }
 
     console.log(`User ${user.email} earned ${coinsEarned} coins for order ${savedOrder._id}`);
 
@@ -140,6 +185,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating order:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({ error: "Server error while creating order." });
   }
 });
