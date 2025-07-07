@@ -45,12 +45,14 @@ export const useOrders = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch orders');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch orders');
       }
 
       const data = await response.json();
       setOrders(data);
     } catch (err) {
+      console.error('Fetch orders error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
@@ -69,6 +71,10 @@ export const useOrders = () => {
     setError(null);
     try {
       const token = await getToken();
+      
+      console.log('Creating order with data:', orderData);
+      console.log('API URL:', `${API_BASE_URL}/api/orders`);
+      
       const response = await fetch(`${API_BASE_URL}/api/orders`, {
         method: 'POST',
         headers: {
@@ -78,13 +84,23 @@ export const useOrders = () => {
         body: JSON.stringify(orderData),
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to create order');
+        const errorData = await response.json();
+        console.error('Order creation error response:', errorData);
+        throw new Error(errorData.error || `Failed to create order (${response.status})`);
       }
 
       const data = await response.json();
+      console.log('Order created successfully:', data);
+      
+      // Refresh orders list
+      await fetchOrders();
+      
       return data;
     } catch (err) {
+      console.error('Create order error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       throw err;
     } finally {
@@ -107,13 +123,15 @@ export const useOrders = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update order status');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update order status');
       }
 
       const data = await response.json();
       await fetchOrders(); // Refresh orders
       return data;
     } catch (err) {
+      console.error('Update order status error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       throw err;
     } finally {

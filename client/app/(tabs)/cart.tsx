@@ -6,6 +6,7 @@ import { useCart, CartItem } from '@/hooks/useCart';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useOrders } from '@/hooks/useOrders';
 import Header from '@/components/Header';
+import SuccessModal from '@/components/SuccessModal';
 
 const Cart = () => {
   const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart, isLoading } = useCart();
@@ -19,6 +20,11 @@ const Cart = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'takeaway'>('delivery');
   const [paymentOption, setPaymentOption] = useState<'online' | 'cod'>('online');
+  
+  // Success modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
     loadCartItems();
@@ -136,24 +142,36 @@ const Cart = () => {
       phoneNumber,
     };
 
+    setIsPlacingOrder(true);
+    
     try {
-      await createOrder(orderData);
+      console.log('Placing order with data:', orderData);
+      const response = await createOrder(orderData);
+      console.log('Order response:', response);
+      
+      // Clear cart after successful order
       await clearCart();
       await loadCartItems();
       
-      Alert.alert(
-        'Order Placed Successfully!',
-        `Your order has been placed. You will receive a confirmation shortly.`,
-        [{ text: 'OK' }]
-      );
+      // Show success modal with order number
+      const orderNum = response._id ? response._id.slice(-6).toUpperCase() : 'UNKNOWN';
+      setOrderNumber(orderNum);
+      setShowSuccessModal(true);
       
       // Reset form
       setAddress('');
       setPhoneNumber('');
       setDeliveryOption('delivery');
       setPaymentOption('online');
+      
     } catch (error) {
-      Alert.alert('Error', 'Failed to place order. Please try again.');
+      console.error('Order placement error:', error);
+      Alert.alert(
+        'Order Failed', 
+        error instanceof Error ? error.message : 'Failed to place order. Please try again.'
+      );
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
@@ -368,10 +386,16 @@ const Cart = () => {
           <View className="px-4 pb-6">
             <TouchableOpacity
               onPress={handleCheckout}
-              className="bg-purple-500 rounded-xl py-4 items-center shadow-sm"
+              disabled={isPlacingOrder}
+              className={`rounded-xl py-4 items-center shadow-sm ${
+                isPlacingOrder ? 'bg-gray-400' : 'bg-purple-500'
+              }`}
             >
               <Text className="text-white text-lg font-bold">
-                Place Order - ₹{(calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0)).toFixed(2)}
+                {isPlacingOrder 
+                  ? 'Placing Order...' 
+                  : `Place Order - ₹${(calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0)).toFixed(2)}`
+                }
               </Text>
             </TouchableOpacity>
           </View>
@@ -387,6 +411,13 @@ const Cart = () => {
           </Text>
         </View>
       )}
+
+      {/* Success Modal */}
+      <SuccessModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        orderNumber={orderNumber}
+      />
     </SafeAreaView>
   );
 };
