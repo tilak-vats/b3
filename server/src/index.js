@@ -4,6 +4,7 @@ import cors from 'cors';
 import userRoutes from "./routes/user.routes.js";
 import productRoutes from "./routes/products.route.js";
 import orderRoutes from "./routes/order.routes.js";
+import messageRoutes from "./routes/message.routes.js";
 import {clerkMiddleware} from '@clerk/express';
 import connectDb from './utils/connectDb.js';
 
@@ -23,7 +24,7 @@ dotenv.config();
         app.use('/api/users', userRoutes);
         app.use('/api/products', productRoutes);
         app.use('/api/orders', orderRoutes);
-
+        app.use('/sendSms',messageRoutes)
         app.get('/', (req, res) => {
             res.send('Hello from Server !! 🎉');
         });

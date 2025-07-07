@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert, RefreshControl, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useSession } from '@clerk/clerk-expo';
 import Header from '@/components/Header';
 import CategoryScroll from '@/components/CategoryScroll';
 import ProductCard from '@/components/ProductCard';
@@ -32,28 +32,52 @@ const Home = () => {
   const [showSortModal, setShowSortModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [userSynced, setUserSynced] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync user when component mounts and user is signed in
   useEffect(() => {
     if (isSignedIn && isLoaded && !userSynced) {
       syncUser()
         .then(() => {
           setUserSynced(true);
-          console.log('User synced successfully on home page');
         })
         .catch(error => {
           console.error('Failed to sync user on home page:', error);
-          // Don't block the UI if sync fails
         });
     }
   }, [isSignedIn, isLoaded, userSynced]);
 
+  // Debounce effect for search query
+  useEffect(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms debounce time
+
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products;
 
+    // Filter by search query
+    if (debouncedSearchQuery) {
+      const lowerCaseSearchQuery = debouncedSearchQuery.toLowerCase();
+      filtered = filtered.filter(
+        product => product.name.toLowerCase().includes(lowerCaseSearchQuery)
+      );
+    }
+
     // Filter by category
     if (selectedCategory !== 'All') {
-      filtered = products.filter(
+      filtered = filtered.filter(
         product => product.category.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
@@ -75,7 +99,7 @@ const Home = () => {
     });
 
     return sorted;
-  }, [products, selectedCategory, sortBy]);
+  }, [products, selectedCategory, sortBy, debouncedSearchQuery]);
 
   const onRefresh = async () => {
     setIsRefreshing(true);
@@ -87,7 +111,6 @@ const Home = () => {
     <ProductCard product={item} />
   );
 
-  // Show loading while auth is loading
   if (!isLoaded) {
     return (
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
@@ -120,13 +143,23 @@ const Home = () => {
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       <Header title="B3 Store" />
-      
+      <View className='px-4'>
+        <View className='w-full mx-auto mt-4 px-3 py-2 rounded-full border border-gray-400 flex items-center gap-2 flex-row'>
+          <Feather name='search' size={24} color="#9ca3af" />
+          <TextInput
+            placeholder='Search'
+            className='text-[#9ca3af] flex-1'
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+          />
+        </View>
+      </View>
       <CategoryScroll
         categories={CATEGORIES}
         selectedCategory={selectedCategory}
         onCategorySelect={setSelectedCategory}
       />
-      
+
       <View className="flex-row items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
         <View className="flex-1" />
         <View className="flex-row items-center">
@@ -148,10 +181,10 @@ const Home = () => {
         renderItem={renderProduct}
         keyExtractor={(item) => item._id}
         numColumns={2}
-        contentContainerStyle={{ 
+        contentContainerStyle={{
           paddingHorizontal: 8,
           paddingVertical: 12,
-          paddingBottom: 100 
+          paddingBottom: 100
         }}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
@@ -162,9 +195,14 @@ const Home = () => {
             <Text className="text-lg font-semibold text-gray-500 mt-4">
               {isLoading ? 'Loading products...' : 'No products found'}
             </Text>
-            {selectedCategory !== 'All' && (
+            {selectedCategory !== 'All' && !debouncedSearchQuery && (
               <Text className="text-gray-400 mt-2 text-center">
                 Try selecting a different category or check back later
+              </Text>
+            )}
+            {debouncedSearchQuery && (
+              <Text className="text-gray-400 mt-2 text-center">
+                No products found for "{debouncedSearchQuery}"
               </Text>
             )}
           </View>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, Image, TextInput, ScrollView } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, Image, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useCart, CartItem } from '@/hooks/useCart';
@@ -7,27 +7,29 @@ import { useProducts, Product } from '@/hooks/useProducts';
 import { useOrders } from '@/hooks/useOrders';
 import { useUser } from '@/hooks/useUser';
 import Header from '@/components/Header';
+import initiateUpiPayment from "../../utils/upiPayment.js"; // Ensure this utility is robust
 import SuccessModal from '@/components/SuccessModal';
 
 const Cart = () => {
-  const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart, isLoading } = useCart();
+  const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart } = useCart();
   const { products } = useProducts();
   const { createOrder } = useOrders();
   const { fetchUserData } = useUser();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartProducts, setCartProducts] = useState<(Product & { cartQuantity: number })[]>([]);
-  
+
   // Form states
   const [address, setAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'takeaway'>('delivery');
   const [paymentOption, setPaymentOption] = useState<'online' | 'cod'>('online');
-  
+
   // Success modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
   const [coinsEarned, setCoinsEarned] = useState(0);
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false); // For overall order placement
+  const [isCartLoading, setIsCartLoading] = useState(false); // For initial cart loading
 
   useEffect(() => {
     loadCartItems();
@@ -41,7 +43,7 @@ const Cart = () => {
           return product ? { ...product, cartQuantity: cartItem.quantity } : null;
         })
         .filter(Boolean) as (Product & { cartQuantity: number })[];
-      
+
       setCartProducts(productsWithCart);
     } else {
       setCartProducts([]);
@@ -49,11 +51,15 @@ const Cart = () => {
   }, [cartItems, products]);
 
   const loadCartItems = async () => {
+    setIsCartLoading(true);
     try {
       const items = await getCartItems();
       setCartItems(items);
     } catch (error) {
       console.error('Error loading cart items:', error);
+      Alert.alert('Error', 'Failed to load cart items.');
+    } finally {
+      setIsCartLoading(false);
     }
   };
 
@@ -125,14 +131,21 @@ const Cart = () => {
   };
 
   const handleCheckout = async () => {
-    if (!address.trim() && deliveryOption === 'delivery') {
-      Alert.alert('Error', 'Please enter your delivery address');
+    // Input validation
+    if (cartProducts.length === 0) {
+      Alert.alert('Error', 'Your cart is empty. Please add items to place an order.');
       return;
     }
     if (!phoneNumber.trim()) {
-      Alert.alert('Error', 'Please enter your phone number');
+      Alert.alert('Error', 'Please enter your phone number.');
       return;
     }
+    if (deliveryOption === 'delivery' && !address.trim()) {
+      Alert.alert('Error', 'Please enter your delivery address.');
+      return;
+    }
+
+    const orderTotal = calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0);
 
     const orderData = {
       items: cartProducts.map(item => ({
@@ -143,49 +156,56 @@ const Cart = () => {
         category: item.category,
         image: item.image,
       })),
-      total: calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0),
+      total: orderTotal,
       deliveryOption,
       paymentOption,
       address: deliveryOption === 'delivery' ? address : 'Store Pickup',
       phoneNumber,
     };
 
-    setIsPlacingOrder(true);
-    
+    setIsPlacingOrder(true); // Start loading state for the order placement
+
     try {
-      console.log('Placing order with data:', orderData);
+      if (paymentOption === 'online') {
+        initiateUpiPayment(orderTotal, "Your Order Payment");
+        setIsPlacingOrder(false);
+        return; // Stop the checkout process here; continue only after payment success in the callback
+      }
+
+      // If payment is COD or online payment was successful, proceed to create order
+      console.log('Creating order with data:', orderData);
       const response = await createOrder(orderData);
       console.log('Order response:', response);
-      
-      // Clear cart after successful order
+
+      // Clear cart after successful order creation
       await clearCart();
-      await loadCartItems();
-      
+      await loadCartItems(); // Reload empty cart
+
       // Refresh user data to get updated coins
       await fetchUserData();
-      
+
       // Show success modal with order number and coins earned
       const orderNum = response._id ? response._id.slice(-6).toUpperCase() : 'UNKNOWN';
-      const earned = response.coinsEarned || calculateCoinsToEarn();
-      
+      const earned = response.coinsEarned || calculateCoinsToEarn(); // Use coins from response if available
+
       setOrderNumber(orderNum);
       setCoinsEarned(earned);
       setShowSuccessModal(true);
-      
-      // Reset form
+
+      // Reset form states for next order
       setAddress('');
       setPhoneNumber('');
       setDeliveryOption('delivery');
       setPaymentOption('online');
-      
+
     } catch (error) {
       console.error('Order placement error:', error);
       Alert.alert(
-        'Order Failed', 
-        error instanceof Error ? error.message : 'Failed to place order. Please try again.'
+        'Order Failed',
+        error instanceof Error ? error.message : 'Something went wrong. Please try again.'
       );
     } finally {
-      setIsPlacingOrder(false);
+      setIsPlacingOrder(false); // End loading state
     }
   };
 
@@ -205,7 +225,7 @@ const Cart = () => {
             </View>
           )}
         </View>
-        
+
         <View className="flex-1">
           <Text className="text-base font-semibold text-gray-800 mb-1" numberOfLines={2}>
             {item.name}
@@ -214,10 +234,10 @@ const Cart = () => {
             {item.category}
           </Text>
           <Text className="text-lg font-bold text-purple-600">
-            ₹{item.price}
+            ₹{item.price.toFixed(2)}
           </Text>
         </View>
-        
+
         <TouchableOpacity
           onPress={() => handleRemoveItem(item.barcode)}
           className="p-2"
@@ -225,7 +245,7 @@ const Cart = () => {
           <Feather name="trash-2" size={18} color="#EF4444" />
         </TouchableOpacity>
       </View>
-      
+
       <View className="flex-row items-center justify-between mt-3">
         <View className="flex-row items-center">
           <TouchableOpacity
@@ -254,8 +274,13 @@ const Cart = () => {
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       <Header title="Shopping Cart" showProfile={false} />
-      
-      {cartProducts.length > 0 ? (
+
+      {isCartLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#8B5CF6" />
+          <Text className="text-lg text-gray-600 mt-4">Loading cart...</Text>
+        </View>
+      ) : cartProducts.length > 0 ? (
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Cart Items Header */}
           <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
@@ -277,13 +302,13 @@ const Cart = () => {
             renderItem={renderCartItem}
             keyExtractor={(item) => item._id}
             contentContainerStyle={{ paddingTop: 12 }}
-            scrollEnabled={false}
+            scrollEnabled={false} // Disable FlatList scrolling as it's inside a ScrollView
           />
 
           {/* Order Details Form */}
           <View className="bg-white mx-4 mt-4 rounded-xl shadow-sm border border-gray-100 p-4">
             <Text className="text-lg font-bold text-gray-800 mb-4">Order Details</Text>
-            
+
             {/* Phone Number */}
             <View className="mb-4">
               <Text className="text-sm font-medium text-gray-700 mb-2">Phone Number *</Text>
@@ -311,7 +336,7 @@ const Cart = () => {
                     Home Delivery
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   onPress={() => setDeliveryOption('takeaway')}
                   className={`flex-1 flex-row items-center justify-center py-3 px-4 rounded-lg border ${
@@ -357,7 +382,7 @@ const Cart = () => {
                     Online Payment
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   onPress={() => setPaymentOption('cod')}
                   className={`flex-1 flex-row items-center justify-center py-3 px-4 rounded-lg border ${
@@ -393,7 +418,7 @@ const Cart = () => {
                   ₹{(calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0)).toFixed(2)}
                 </Text>
               </View>
-              
+
               {/* Coins to Earn */}
               <View className="flex-row justify-between items-center mt-2 p-2 bg-yellow-50 rounded-lg">
                 <View className="flex-row items-center">
@@ -410,18 +435,19 @@ const Cart = () => {
           {/* Checkout Button */}
           <View className="px-4 pb-6">
             <TouchableOpacity
-              onPress={handleCheckout}
+              onPress={handleCheckout} // Corrected: Call handleCheckout for full cart checkout
               disabled={isPlacingOrder}
               className={`rounded-xl py-4 items-center shadow-sm ${
                 isPlacingOrder ? 'bg-gray-400' : 'bg-purple-500'
               }`}
             >
-              <Text className="text-white text-lg font-bold">
-                {isPlacingOrder 
-                  ? 'Placing Order...' 
-                  : `Place Order - ₹${(calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0)).toFixed(2)}`
-                }
-              </Text>
+              {isPlacingOrder ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text className="text-white text-lg font-bold">
+                  Place Order - ₹{(calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0)).toFixed(2)}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </ScrollView>
