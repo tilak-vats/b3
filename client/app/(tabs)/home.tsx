@@ -151,7 +151,6 @@ const Home = () => {
           paddingVertical: 12,
           paddingBottom: 100 
         }}
-        columnWrapperStyle={{ justifyContent: 'space-around' }}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
         }

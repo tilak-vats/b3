@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@clerk/clerk-expo';
 
 const CART_STORAGE_KEY = 'cart_items';
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE_URL = 'https://b3-iot.vercel.app';
 
 export interface CartItem {
   barcode: string;
