@@ -1,5 +1,4 @@
 import { Twilio } from 'twilio';
-import { NextResponse } from 'next/server';
 import asyncHandler from 'express-async-handler';
 
 const client = new Twilio(
