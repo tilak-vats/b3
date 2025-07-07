@@ -1,12 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
 import Header from '@/components/Header';
 import CategoryScroll from '@/components/CategoryScroll';
 import ProductCard from '@/components/ProductCard';
 import SortModal from '@/components/SortModal';
 import { useProducts, Product } from '@/hooks/useProducts';
+import { useUserSync } from '@/hooks/useUserSync';
 
 const CATEGORIES = [
   'All',
@@ -23,10 +25,28 @@ const CATEGORIES = [
 
 const Home = () => {
   const { products, isLoading, error, fetchProducts } = useProducts();
+  const { syncUser } = useUserSync();
+  const { isSignedIn, isLoaded } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('name');
   const [showSortModal, setShowSortModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [userSynced, setUserSynced] = useState(false);
+
+  // Sync user when component mounts and user is signed in
+  useEffect(() => {
+    if (isSignedIn && isLoaded && !userSynced) {
+      syncUser()
+        .then(() => {
+          setUserSynced(true);
+          console.log('User synced successfully on home page');
+        })
+        .catch(error => {
+          console.error('Failed to sync user on home page:', error);
+          // Don't block the UI if sync fails
+        });
+    }
+  }, [isSignedIn, isLoaded, userSynced]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products;
@@ -66,6 +86,16 @@ const Home = () => {
   const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard product={item} />
   );
+
+  // Show loading while auth is loading
+  if (!isLoaded) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+        <ActivityIndicator size="large" color="#8968CD" />
+        <Text className="mt-4 text-gray-600">Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
   if (error) {
     return (
