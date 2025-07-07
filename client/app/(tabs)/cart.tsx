@@ -9,6 +9,7 @@ import { useUser } from '@/hooks/useUser';
 import Header from '@/components/Header';
 import initiateUpiPayment from "../../utils/upiPayment.js"; // Ensure this utility is robust
 import SuccessModal from '@/components/SuccessModal';
+import { smsTemplates } from '@/utils/sms.js';
 
 const Cart = () => {
   const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart } = useCart();
@@ -169,13 +170,24 @@ const Cart = () => {
       if (paymentOption === 'online') {
         initiateUpiPayment(orderTotal, "Your Order Payment");
         setIsPlacingOrder(false);
-        return; // Stop the checkout process here; continue only after payment success in the callback
+        return; 
       }
 
-      // If payment is COD or online payment was successful, proceed to create order
-      console.log('Creating order with data:', orderData);
       const response = await createOrder(orderData);
       console.log('Order response:', response);
+      const sendSms= async()=>{
+        const message = `${smsTemplates.orderPlaced}\n ${orderData}`
+        const res = await fetch('https://b3-iota.vercel.app/api/sendSms',{
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phoneNumber:phoneNumber,
+            mssg:message
+          }),
+        })
+      }
 
       // Clear cart after successful order creation
       await clearCart();

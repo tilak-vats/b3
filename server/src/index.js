@@ -24,7 +24,7 @@ dotenv.config();
         app.use('/api/users', userRoutes);
         app.use('/api/products', productRoutes);
         app.use('/api/orders', orderRoutes);
-        app.use('/sendSms',messageRoutes)
+        app.use('/api/sendSms',messageRoutes)
         app.get('/', (req, res) => {
             res.send('Hello from Server !! 🎉');
         });
