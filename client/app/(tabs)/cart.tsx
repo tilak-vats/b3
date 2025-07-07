@@ -7,7 +7,7 @@ import { useProducts, Product } from '@/hooks/useProducts';
 import { useOrders } from '@/hooks/useOrders';
 import { useUser } from '@/hooks/useUser';
 import Header from '@/components/Header';
-import initiateUpiPayment from "../../utils/upiPayment.js";
+import initiateUpiPayment from "../../utils/upi Payment.js";
 import SuccessModal from '@/components/SuccessModal';
 import CustomAlert from '@/components/CustomAlert';
 import CustomToast from '@/components/CustomToast';
