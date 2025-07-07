@@ -58,6 +58,7 @@ const AdminPanel = () => {
       case 'Products':
         return (
           <FlatList
+            key="products-grid" // Add unique key for products grid
             data={products}
             renderItem={renderProduct}
             keyExtractor={(item) => item._id}
@@ -81,9 +82,11 @@ const AdminPanel = () => {
       case 'Orders':
         return (
           <FlatList
+            key="orders-list" // Add unique key for orders list
             data={orders}
             renderItem={renderOrder}
             keyExtractor={(item) => item._id}
+            numColumns={1} // Explicitly set numColumns for orders
             contentContainerStyle={{ 
               paddingVertical: 12,
               paddingBottom: 100 
