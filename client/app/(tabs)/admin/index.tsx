@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
 import { useProducts, Product } from '@/hooks/useProducts';
+import { useOrders, Order } from '@/hooks/useOrders';
 import ProductCard from '@/components/ProductCard';
+import OrderCard from '@/components/OrderCard';
 import EditProductModal from '@/components/EditProductModal';
 
 const ADMIN_TABS = ['Products', 'Orders', 'Analytics'];
 
 const AdminPanel = () => {
-  const { products, isLoading, fetchProducts } = useProducts();
-  const [activeTab, setActiveTab] = useState('Products');
+  const { products, isLoading: productsLoading, fetchProducts } = useProducts();
+  const { orders, isLoading: ordersLoading, fetchOrders, updateOrderStatus } = useOrders();
+  const [activeTab, setActiveTab] = useState('Orders');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -26,11 +28,28 @@ const AdminPanel = () => {
     fetchProducts(); // Refresh products after edit
   };
 
+  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+    try {
+      await updateOrderStatus(orderId, status);
+      Alert.alert('Success', `Order status updated to ${status}`);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update order status');
+    }
+  };
+
   const renderProduct = ({ item }: { item: Product }) => (
     <ProductCard 
       product={item} 
       isAdmin={true}
       onEdit={handleEditProduct}
+    />
+  );
+
+  const renderOrder = ({ item }: { item: Order }) => (
+    <OrderCard 
+      order={item} 
+      isAdmin={true}
+      onUpdateStatus={handleUpdateOrderStatus}
     />
   );
 
@@ -53,7 +72,7 @@ const AdminPanel = () => {
               <View className="flex-1 items-center justify-center py-20">
                 <Feather name="package" size={48} color="#9CA3AF" />
                 <Text className="text-lg font-semibold text-gray-500 mt-4">
-                  {isLoading ? 'Loading products...' : 'No products found'}
+                  {productsLoading ? 'Loading products...' : 'No products found'}
                 </Text>
               </View>
             }
@@ -61,15 +80,23 @@ const AdminPanel = () => {
         );
       case 'Orders':
         return (
-          <View className="flex-1 items-center justify-center">
-            <Feather name="shopping-bag" size={48} color="#9CA3AF" />
-            <Text className="text-lg font-semibold text-gray-500 mt-4">
-              Orders Management
-            </Text>
-            <Text className="text-gray-400 mt-2 text-center">
-              Coming Soon
-            </Text>
-          </View>
+          <FlatList
+            data={orders}
+            renderItem={renderOrder}
+            keyExtractor={(item) => item._id}
+            contentContainerStyle={{ 
+              paddingVertical: 12,
+              paddingBottom: 100 
+            }}
+            ListEmptyComponent={
+              <View className="flex-1 items-center justify-center py-20">
+                <Feather name="shopping-bag" size={48} color="#9CA3AF" />
+                <Text className="text-lg font-semibold text-gray-500 mt-4">
+                  {ordersLoading ? 'Loading orders...' : 'No orders found'}
+                </Text>
+              </View>
+            }
+          />
         );
       case 'Analytics':
         return (
@@ -96,13 +123,18 @@ const AdminPanel = () => {
           <Feather name="shield" size={24} color="#8B5CF6" />
           <Text className="text-xl font-bold text-gray-800 ml-2">Admin Panel</Text>
         </View>
-        <TouchableOpacity
-          onPress={() => {/* Navigate back to normal tabs */}}
-          className="flex-row items-center px-3 py-2 bg-gray-100 rounded-lg"
-        >
-          <Feather name="arrow-left" size={16} color="#374151" />
-          <Text className="ml-2 text-gray-700 font-medium text-sm">Back</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center">
+          {activeTab === 'Orders' && (
+            <Text className="text-sm text-gray-600 mr-2">
+              {orders.length} orders
+            </Text>
+          )}
+          {activeTab === 'Products' && (
+            <Text className="text-sm text-gray-600 mr-2">
+              {products.length} products
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Admin Tab Bar */}

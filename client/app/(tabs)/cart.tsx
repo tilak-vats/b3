@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useCart, CartItem } from '@/hooks/useCart';
 import { useProducts, Product } from '@/hooks/useProducts';
+import { useOrders } from '@/hooks/useOrders';
 import Header from '@/components/Header';
 
 const Cart = () => {
   const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart, isLoading } = useCart();
   const { products } = useProducts();
+  const { createOrder } = useOrders();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartProducts, setCartProducts] = useState<(Product & { cartQuantity: number })[]>([]);
   
@@ -108,7 +110,7 @@ const Cart = () => {
     return cartProducts.reduce((total, item) => total + (item.price * item.cartQuantity), 0);
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!address.trim() && deliveryOption === 'delivery') {
       Alert.alert('Error', 'Please enter your delivery address');
       return;
@@ -118,23 +120,41 @@ const Cart = () => {
       return;
     }
 
-    const orderDetails = {
-      items: cartProducts,
-      total: calculateTotal(),
+    const orderData = {
+      items: cartProducts.map(item => ({
+        _id: item._id,
+        name: item.name,
+        price: item.price,
+        quantity: item.cartQuantity,
+        category: item.category,
+        image: item.image,
+      })),
+      total: calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0),
       deliveryOption,
       paymentOption,
       address: deliveryOption === 'delivery' ? address : 'Store Pickup',
       phoneNumber,
     };
 
-    Alert.alert(
-      'Order Confirmation',
-      `Order Type: ${deliveryOption === 'delivery' ? 'Home Delivery' : 'Pre-order & Takeaway'}\nPayment: ${paymentOption === 'online' ? 'Online Payment' : 'Cash on ' + (deliveryOption === 'delivery' ? 'Delivery' : 'Pickup')}\nTotal: ₹${calculateTotal().toFixed(2)}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Confirm Order', onPress: () => Alert.alert('Success', 'Order placed successfully!') }
-      ]
-    );
+    try {
+      await createOrder(orderData);
+      await clearCart();
+      await loadCartItems();
+      
+      Alert.alert(
+        'Order Placed Successfully!',
+        `Your order has been placed. You will receive a confirmation shortly.`,
+        [{ text: 'OK' }]
+      );
+      
+      // Reset form
+      setAddress('');
+      setPhoneNumber('');
+      setDeliveryOption('delivery');
+      setPaymentOption('online');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to place order. Please try again.');
+    }
   };
 
   const renderCartItem = ({ item }: { item: Product & { cartQuantity: number } }) => (

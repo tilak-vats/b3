@@ -43,15 +43,14 @@ const _layout = () => {
                     tabBarIcon:({color,size})=> <Feather size={size} color={color} name='shopping-cart' />
                 }}
             />
-            {isAdmin && (
-                <Tabs.Screen
-                    name='admin'
-                    options={{
-                        title:'Admin',
-                        tabBarIcon:({color,size})=> <Feather size={size} color={color} name='settings' />
-                    }}
-                />
-            )}
+            <Tabs.Screen
+                name='admin'
+                options={{
+                    title:'Admin',
+                    tabBarIcon:({color,size})=> <Feather size={size} color={color} name='settings' />,
+                    href: isAdmin ? '/(tabs)/admin' : null,
+                }}
+            />
             <Tabs.Screen
                 name='profile'
                 options={{
