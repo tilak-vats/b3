@@ -6,7 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
 import Header from '@/components/Header';
 import OrderHistoryCard from '@/components/OrderHistoryCard';
-import CoinsDisplay from '@/components/CoinsDisplay';
+import CoinsDisplay from '@/components/CoinDisplay';
 import { useOrders } from '@/hooks/useOrders';
 import { useUser } from '@/hooks/useUser';
 
