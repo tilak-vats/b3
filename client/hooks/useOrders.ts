@@ -101,7 +101,7 @@ export const useOrders = () => {
       console.log('Creating order with data:', orderData);
       console.log('API URL:', `${API_BASE_URL}/api/orders`);
       
-      const response = await fetch(`${API_BASE_URL}/api/orders`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

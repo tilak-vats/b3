@@ -188,6 +188,7 @@ const Cart = () => {
           }),
         })
       }
+      sendSms();
 
       // Clear cart after successful order creation
       await clearCart();
