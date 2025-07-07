@@ -22,7 +22,7 @@ const CATEGORIES = [
 ];
 
 const Home = () => {
-  const { products, isLoading, error, fetchProducts, categorizeProducts } = useProducts();
+  const { products, isLoading, error, fetchProducts } = useProducts();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('name');
   const [showSortModal, setShowSortModal] = useState(false);
@@ -56,27 +56,6 @@ const Home = () => {
 
     return sorted;
   }, [products, selectedCategory, sortBy]);
-
-  const handleCategorizeProducts = async () => {
-    Alert.alert(
-      'Categorize Products',
-      'This will automatically categorize all products using AI. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: async () => {
-            try {
-              await categorizeProducts();
-              Alert.alert('Success', 'Products have been categorized successfully!');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to categorize products. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const onRefresh = async () => {
     setIsRefreshing(true);
@@ -117,16 +96,9 @@ const Home = () => {
         selectedCategory={selectedCategory}
         onCategorySelect={setSelectedCategory}
       />
+      
       <View className="flex-row items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
-        <TouchableOpacity
-          onPress={handleCategorizeProducts}
-          disabled={isLoading}
-          className="flex-row items-center px-3 py-2 bg-blue-500 rounded-lg"
-        >
-          <Feather name="zap" size={14} color="white" />
-          <Text className="ml-2 text-white font-medium text-sm">AI Categorize</Text>
-        </TouchableOpacity>
-
+        <View className="flex-1" />
         <View className="flex-row items-center">
           <Text className="text-gray-600 mr-3 text-sm">
             {filteredAndSortedProducts.length} products
