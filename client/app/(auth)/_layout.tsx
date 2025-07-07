@@ -1,17 +1,33 @@
 import { Redirect, Stack } from "expo-router";
-import {useAuth} from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/clerk-expo";
+import { useEffect } from "react";
+import { useUserSync } from "@/hooks/useUserSync";
 
-export default function RootLayout() {
+export default function AuthLayout() {
+    const { isSignedIn, isLoaded } = useAuth();
+    const { syncUser } = useUserSync();
 
-    const {isSignedIn} = useAuth();
+    useEffect(() => {
+        // Sync user when they sign in
+        if (isSignedIn && isLoaded) {
+            syncUser().catch(error => {
+                console.error('Failed to sync user on sign in:', error);
+            });
+        }
+    }, [isSignedIn, isLoaded]);
 
-    if(isSignedIn){
-        return <Redirect href={"/(tabs)/home"} />
+    // Wait for auth to load
+    if (!isLoaded) {
+        return null;
     }
-    return(
-        <Stack screenOptions={{headerShown:false}}>
+
+    if (isSignedIn) {
+        return <Redirect href="/(tabs)/home" />;
+    }
+
+    return (
+        <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
         </Stack>
-    )
-  }
-  
+    );
+}
