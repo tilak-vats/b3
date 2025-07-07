@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useAuth, useUser as useClerkUser } from '@clerk/clerk-expo';
 import { Feather } from '@expo/vector-icons';
 import { Redirect } from 'expo-router';
 import Header from '@/components/Header';
 import OrderHistoryCard from '@/components/OrderHistoryCard';
+import CoinsDisplay from '@/components/CoinsDisplay';
 import { useOrders } from '@/hooks/useOrders';
+import { useUser } from '@/hooks/useUser';
 
 const Profile = () => {
   const { signOut, isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { user: clerkUser } = useClerkUser();
+  const { userData, fetchUserData } = useUser();
   const { orders, isLoading: ordersLoading, fetchOrders } = useOrders();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'orders'>('profile');
@@ -48,10 +51,17 @@ const Profile = () => {
 
   const onRefresh = async () => {
     setIsRefreshing(true);
-    if (activeTab === 'orders') {
-      await fetchOrders();
+    try {
+      if (activeTab === 'orders') {
+        await fetchOrders();
+      } else {
+        await fetchUserData();
+      }
+    } catch (error) {
+      console.error('Refresh error:', error);
+    } finally {
+      setIsRefreshing(false);
     }
-    setIsRefreshing(false);
   };
 
   if (!isSignedIn) {
@@ -99,7 +109,7 @@ const Profile = () => {
           <View className="relative">
             <Image
               source={{ 
-                uri: user?.imageUrl || 'https://via.placeholder.com/100x100/8B5CF6/FFFFFF?text=U'
+                uri: clerkUser?.imageUrl || 'https://via.placeholder.com/100x100/8B5CF6/FFFFFF?text=U'
               }}
               className="w-24 h-24 rounded-full"
             />
@@ -108,11 +118,23 @@ const Profile = () => {
             </TouchableOpacity>
           </View>
           <Text className="text-xl font-bold text-gray-800 mt-4">
-            {user?.fullName || 'User'}
+            {clerkUser?.fullName || 'User'}
           </Text>
           <Text className="text-gray-500 mt-1">
-            {user?.primaryEmailAddress?.emailAddress}
+            {clerkUser?.primaryEmailAddress?.emailAddress}
           </Text>
+          
+          {/* Coins Display */}
+          <View className="mt-4">
+            <CoinsDisplay 
+              coins={userData?.coins || 0} 
+              size="large" 
+              showLabel={true} 
+            />
+            <Text className="text-xs text-gray-500 mt-2 text-center">
+              Earn 1 coin for every ₹100 spent
+            </Text>
+          </View>
         </View>
       </View>
 

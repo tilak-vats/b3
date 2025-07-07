@@ -18,7 +18,11 @@ const userSchema = new mongoose.Schema(
             type:String,
             default:"",
         },
-        cartItem:[cartItem]
+        cartItem:[cartItem],
+        coins: {
+            type: Number,
+            default: 0
+        }
     },
     {timestamps:true}
 )

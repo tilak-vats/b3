@@ -5,6 +5,7 @@ import { Feather } from '@expo/vector-icons';
 import { useCart, CartItem } from '@/hooks/useCart';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { useOrders } from '@/hooks/useOrders';
+import { useUser } from '@/hooks/useUser';
 import Header from '@/components/Header';
 import SuccessModal from '@/components/SuccessModal';
 
@@ -12,6 +13,7 @@ const Cart = () => {
   const { getCartItems, removeFromCart, updateCartItemQuantity, clearCart, isLoading } = useCart();
   const { products } = useProducts();
   const { createOrder } = useOrders();
+  const { fetchUserData } = useUser();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartProducts, setCartProducts] = useState<(Product & { cartQuantity: number })[]>([]);
   
@@ -24,6 +26,7 @@ const Cart = () => {
   // Success modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [coinsEarned, setCoinsEarned] = useState(0);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
@@ -116,6 +119,11 @@ const Cart = () => {
     return cartProducts.reduce((total, item) => total + (item.price * item.cartQuantity), 0);
   };
 
+  const calculateCoinsToEarn = () => {
+    const total = calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0);
+    return Math.floor(total / 100);
+  };
+
   const handleCheckout = async () => {
     if (!address.trim() && deliveryOption === 'delivery') {
       Alert.alert('Error', 'Please enter your delivery address');
@@ -153,9 +161,15 @@ const Cart = () => {
       await clearCart();
       await loadCartItems();
       
-      // Show success modal with order number
+      // Refresh user data to get updated coins
+      await fetchUserData();
+      
+      // Show success modal with order number and coins earned
       const orderNum = response._id ? response._id.slice(-6).toUpperCase() : 'UNKNOWN';
+      const earned = response.coinsEarned || calculateCoinsToEarn();
+      
       setOrderNumber(orderNum);
+      setCoinsEarned(earned);
       setShowSuccessModal(true);
       
       // Reset form
@@ -373,10 +387,21 @@ const Cart = () => {
               </Text>
             </View>
             <View className="border-t border-gray-200 pt-2 mt-2">
-              <View className="flex-row justify-between items-center">
+              <View className="flex-row justify-between items-center mb-2">
                 <Text className="text-lg font-bold text-gray-800">Total</Text>
                 <Text className="text-xl font-bold text-purple-600">
                   ₹{(calculateTotal() + (deliveryOption === 'delivery' ? 50 : 0)).toFixed(2)}
+                </Text>
+              </View>
+              
+              {/* Coins to Earn */}
+              <View className="flex-row justify-between items-center mt-2 p-2 bg-yellow-50 rounded-lg">
+                <View className="flex-row items-center">
+                  <Feather name="star" size={16} color="#F59E0B" />
+                  <Text className="text-sm text-yellow-700 ml-1">You'll earn</Text>
+                </View>
+                <Text className="text-sm font-bold text-yellow-700">
+                  {calculateCoinsToEarn()} coin{calculateCoinsToEarn() !== 1 ? 's' : ''}
                 </Text>
               </View>
             </View>
@@ -417,6 +442,7 @@ const Cart = () => {
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         orderNumber={orderNumber}
+        coinsEarned={coinsEarned}
       />
     </SafeAreaView>
   );
